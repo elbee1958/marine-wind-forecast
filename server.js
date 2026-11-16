@@ -17,6 +17,11 @@ app.use((req, res, next) => {
 app.use(express.static("public", { maxAge: process.env.NODE_ENV === "production" ? "1h" : 0 }));
 app.use(express.json());
 
+app.use(['/api/geocode', '/api/forecast'], (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  next();
+});
+
 // Lightweight in-memory request throttling for a public demo app.
 // Limits reset when the service restarts; use a shared store for high-traffic production.
 const requestWindows = new Map();
