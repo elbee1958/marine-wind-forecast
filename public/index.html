@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Marine Wind & Waves — Map Selection</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoT3dM5cY0gI=" crossorigin="">
+<style>
+:root{font-family:system-ui,Arial,sans-serif;color:#eaf2fb;background:#081827}*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#0b263c,#081827 55%);min-height:100vh}main{max-width:1180px;margin:auto;padding:26px 16px 60px}h1{margin:0;font-size:clamp(25px,4vw,36px)}header p{color:#9eb4c8;margin:6px 0 18px}.panel{background:#10283b;border:1px solid #23445c;border-radius:18px;padding:20px;margin:16px 0}.formgrid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}label{display:block;color:#a9bfd1;font-size:13px;margin-bottom:7px}input,button{font:inherit;border-radius:10px;padding:12px;border:1px solid #36566d;background:#091d2c;color:#f3f8fc;width:100%}button{background:#079ac2;border:0;font-weight:700;cursor:pointer}button:disabled{opacity:.5}.secondary{background:#1a3b51}.actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}.actions button{width:auto;min-width:180px}.hint{color:#9eb4c8;font-size:13px;line-height:1.5}.notice{color:#ffd58a;background:#49371955;border:1px solid #80602c;padding:12px;border-radius:10px;font-size:13px;line-height:1.5}#error{color:#ffb1a9;margin-top:12px;white-space:pre-wrap}.tabs{display:grid;grid-template-columns:1fr;gap:10px}.point{background:#0b2030;border:1px solid #294b62;border-radius:14px;padding:15px;min-width:0}.point h2{font-size:18px;margin:0 0 5px}.coords{font-size:11px;color:#8faabd;margin-bottom:12px;overflow-wrap:anywhere}.metric{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.metric div{background:#15364c;padding:9px;border-radius:9px}.metric small{display:block;color:#9eb4c8;font-size:11px}.metric b{font-size:18px}#map{height:420px;width:100%;border-radius:12px;background:#18354a}.maplegend{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;color:#a9bfd1;font-size:13px}.mapdot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;background:#2bb6e3}.mapdot.start{background:#f4a340}.mapdot.end{background:#55d6a0}table{width:100%;border-collapse:collapse;font-size:13px;min-width:620px}th,td{text-align:left;padding:11px 9px;border-bottom:1px solid #29475b;white-space:nowrap}th{color:#9eb4c8;font-weight:600;position:sticky;top:0;background:#10283b}.tablewrap{overflow:auto;max-height:560px}#results{display:none}@media(max-width:760px){#map{height:330px}.formgrid,.tabs{grid-template-columns:1fr}.metric b{font-size:16px}}
+
+/* Embedded Leaflet layout fallback: keeps map tiles inside the map even when
+   the external Leaflet stylesheet is blocked by a browser or extension. */
+#map {position:relative; overflow:hidden; isolation:isolate; contain:layout paint;}
+#map .leaflet-pane, #map .leaflet-tile, #map .leaflet-marker-icon,
+#map .leaflet-marker-shadow, #map .leaflet-tile-container,
+#map .leaflet-pane > svg, #map .leaflet-pane > canvas,
+#map .leaflet-zoom-box, #map .leaflet-image-layer {position:absolute;left:0;top:0;}
+#map .leaflet-pane {z-index:400;}
+#map .leaflet-tile-pane {z-index:200;}
+#map .leaflet-overlay-pane {z-index:400;}
+#map .leaflet-shadow-pane {z-index:500;}
+#map .leaflet-marker-pane {z-index:600;}
+#map .leaflet-tooltip-pane {z-index:650;}
+#map .leaflet-popup-pane {z-index:700;}
+#map .leaflet-map-pane {position:absolute;left:0;top:0;}
+#map .leaflet-tile {width:256px;height:256px;max-width:none!important;max-height:none!important;pointer-events:none;}
+#map .leaflet-container {overflow:hidden;}
+#map .leaflet-control-container .leaflet-top,#map .leaflet-control-container .leaflet-bottom {position:absolute;z-index:1000;pointer-events:none;}
+#map .leaflet-top {top:0;} #map .leaflet-bottom {bottom:0;}
+#map .leaflet-left {left:0;} #map .leaflet-right {right:0;}
+#map .leaflet-control {position:relative;z-index:800;pointer-events:auto;clear:both;margin:10px;}
+#map .leaflet-control-zoom {width:34px;border:2px solid #ffffffb3;border-radius:5px;overflow:hidden;}
+#map .leaflet-control-zoom a {display:block;width:30px;height:30px;line-height:30px;text-align:center;background:#fff;color:#222;font:bold 22px Arial;text-decoration:none;border-bottom:1px solid #ddd;}
+#map .leaflet-control-attribution {background:#ffffffd9;color:#333;padding:2px 5px;font:10px Arial;}
+#map .leaflet-control-attribution a {color:#17618a;}
+#map .leaflet-popup {position:absolute;text-align:center;margin-bottom:20px;}
+#map .leaflet-popup-content-wrapper {background:#fff;color:#222;border-radius:10px;box-shadow:0 2px 10px #0004;padding:1px;}
+#map .leaflet-popup-content {margin:12px 18px;line-height:1.5;white-space:nowrap;font:13px Arial;}
+#map .leaflet-popup-tip-container {position:absolute;left:50%;margin-left:-10px;width:20px;height:20px;overflow:hidden;}
+#map .leaflet-popup-tip {width:14px;height:14px;background:#fff;transform:rotate(45deg);margin:-8px auto 0;}
+#map .leaflet-popup-close-button {position:absolute;right:6px;top:5px;color:#555;text-decoration:none;font-size:20px;z-index:1;}
+#map {cursor:crosshair;}
+#map .leaflet-container, #map .leaflet-grab {cursor:crosshair !important;}
+#map .leaflet-dragging, #map .leaflet-dragging .leaflet-grab {cursor:grabbing !important;}
+#map .leaflet-marker-icon {cursor:grab !important;}
+#map .forecast-red-circle {background:#e33434;border:3px solid #fff;border-radius:50%;box-shadow:0 1px 9px #0009;width:22px;height:22px;}
+#map .leaflet-marker-icon:active {cursor:grabbing !important;}
+#map .leaflet-interactive {cursor:crosshair;}
+#map .leaflet-fade-anim .leaflet-tile {will-change:opacity;}
+#map .leaflet-zoom-animated {transform-origin:0 0;}
+
+/* Sailing threshold alerts: only the metric cells exceeding limits are red. */
+.metric div.alert-high, td.alert-high {background:#b91c1c!important;color:#fff!important;font-weight:700;}
+.metric div.alert-high small {color:#ffe4e4;}
+td.alert-high {box-shadow:inset 0 0 0 1px #f87171;}
+.modelrow{margin-top:14px;max-width:460px}.modelrow select{width:100%;font:inherit;border-radius:10px;padding:12px;border:1px solid #36566d;background:#091d2c;color:#f3f8fc}.modelrow .hint{margin:7px 0 0}.wind-arrow{display:inline-block;font-size:23px;line-height:1;vertical-align:middle;margin-right:8px;color:#70d8ff;transform-origin:center center}.wind-degrees{font-size:13px;vertical-align:middle;white-space:nowrap}
+
+/* PDF export via browser print-to-PDF; no additional server or API key. */
+#pdfExport{background:#137f9c;max-width:340px;margin:18px 0 6px}
+#pdfExport:disabled{opacity:.5}
+#printMeta{display:none}
+@page{size:A4 landscape;margin:11mm}
+@media print{
+  :root,body{background:#fff!important;color:#111!important;font-family:Arial,sans-serif}
+  body{margin:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  main{max-width:none;padding:0;margin:0}
+  header{margin:0 0 8px}h1{font-size:20px!important;color:#111!important}
+  header p{font-size:10px;color:#444!important;margin:3px 0}
+  #locationControls,.actions,#roughEmpty,#error,#pdfExport,#printHelp,.notice,#pdfSection{display:none!important}
+  .panel{background:#fff!important;border:0!important;padding:0!important;margin:6px 0 12px!important;break-inside:auto}
+  .panel h2{color:#111!important;font-size:14px;margin:6px 0}
+  #map{height:250px!important;width:100%!important;border:1px solid #aaa;border-radius:0;overflow:hidden!important;break-inside:avoid}
+  #map .leaflet-control-zoom{display:none!important}
+  #map .leaflet-control-attribution{display:block!important}
+  #selection{font-size:11px;color:#222!important;margin:5px 0}
+  #printMeta{display:block;color:#333;font-size:11px;margin:5px 0 8px}
+  #results{display:block!important}
+  #results>.hint{font-size:10px;color:#333!important;margin:6px 0!important}
+  #cards{display:none!important}
+  .tablewrap{overflow:visible!important;max-height:none!important}
+  table{min-width:0!important;width:100%;font-size:9px;color:#111!important;border-collapse:collapse}
+  thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}
+  th,td{color:#111!important;border-bottom:1px solid #aaa!important;padding:5px 5px!important;white-space:nowrap}
+  th{position:static!important;background:#e8edf2!important}
+  td.alert-high{background:#e53d3d!important;color:#fff!important;font-weight:bold}
+  .wind-arrow{color:#111!important}
+  .hint{color:#333!important}
+}
+</style></head><body><main>
+<header><h1>〰 Marine Wind & Waves Forecast <span style="font-size:inherit;font-weight:inherit;white-space:nowrap;color:inherit">v16</span></h1><p>Map selection · Wind: <span id="modelSource">OpenWeather (model unspecified)</span> · Waves: Open-Meteo Marine</p></header>
+<section class="panel" id="locationControls"><h2 style="margin-top:0">Choose forecast location on the map</h2>
+<div class="formgrid"><div><label for="place">Find town and country</label><input id="place" placeholder="Enter town and country"></div><div><label for="lat">Or selected latitude</label><input id="lat" type="number" step="any" placeholder="Latitude"></div><div><label for="lon">Selected longitude</label><input id="lon" type="number" step="any" placeholder="Longitude"></div></div>
+<div class="modelrow"><label for="windModel">Wind forecast model</label><select id="windModel"><option value="openweather">OpenWeather (existing forecast)</option><option value="ecmwf_ifs">ECMWF IFS</option><option value="ncep_gfs_seamless">GFS (NCEP)</option><option value="icon_seamless">ICON (DWD)</option></select><p class="hint">Model selection changes wind and gusts. Waves remain from Open-Meteo Marine. Select another model and request the forecast again.</p></div><div class="actions"><button class="secondary" id="search">Find location on map</button><button id="run">Get forecast for selected point</button><button class="secondary" id="clear">Clear selection</button></div>
+<p class="hint">Move the crosshair over the sea and click to place a forecast point. You can drag the marker or enter exact coordinates. Select a point over the sea; the app cannot reliably distinguish land from water.</p><div id="error" role="alert"></div></section>
+<section class="panel"><h2>Choose a point at sea</h2><div id="map" aria-label="Interactive map; click to select a forecast point"></div><p id="selection" class="hint">Click on the map to place your forecast marker.</p><p class="hint">Esri topographic map is for orientation, not nautical navigation.</p></section>
+<div class="notice">Marine-use note: forecasts are model estimates. Nearshore and sheltered water wave forecasts may be unreliable. Check official marine forecasts before sailing.</div>
+<section id="results"><div id="printMeta"></div><p class="hint" style="margin:16px 0">🔴 Red cells indicate wind or gusts &gt; 15 kn, or significant wave height &gt; 1 m (strictly above).</p><div class="panel"><h2>Selected sea location forecast</h2><div class="tabs" id="cards"></div></div><div class="panel"><h2>3-hourly forecast · next 5 days</h2><div class="actions" style="margin:0 0 12px"><button class="secondary" id="roughOnly" type="button" aria-pressed="false">Show rough conditions only</button></div><p id="roughEmpty" class="hint" style="display:none">No rough conditions found in this forecast.</p><div class="tablewrap"><table><thead><tr><th>Time</th><th>Wind</th><th>Speed</th><th>Gust</th><th>Waves</th><th>Period</th><th>Swell</th></tr></thead><tbody id="rows"></tbody></table></div><p class="hint">Wind in knots; wave and swell heights in metres, period in seconds. Wave values are aligned to the nearest available forecast hour (within 90 minutes). Times shown at the forecast point's local UTC offset. Wind arrows point where the wind blows TO; degrees show the meteorological direction it comes FROM (true north = 0°). A dash indicates unavailable marine data.</p></div></section>
+<section class="panel" id="pdfSection"><h2>Export forecast</h2><button id="pdfExport" type="button" disabled>Save map &amp; forecast as PDF</button><p id="printHelp" class="hint">On iPhone, tap Save PDF, then use Safari’s Share button to save the PDF to Files. On desktop the PDF downloads automatically. Internet access is needed for the PDF library.</p></section>
+</main><script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script><script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script><script>
+'use strict';
+const API_BASE=window.location.origin;
+const $=id=>document.getElementById(id);
+let forecastMap=null,selectedMarker=null,selectedPoint=null;
+function selectPoint(lat,lon,pan=false){
+ selectedPoint={lat,lon};$('lat').value=lat.toFixed(6);$('lon').value=lon.toFixed(6);
+ $('selection').textContent=`Selected: ${lat.toFixed(6)}°, ${lon.toFixed(6)}° — drag marker to adjust.`;
+ if(selectedMarker){selectedMarker.setLatLng([lat,lon]);}
+ else {const redCircleIcon=L.divIcon({className:'forecast-red-circle',html:'',iconSize:[22,22],iconAnchor:[11,11]});selectedMarker=L.marker([lat,lon],{draggable:true,icon:redCircleIcon}).addTo(forecastMap).bindPopup('Forecast location');selectedMarker.on('dragend',()=>{const p=selectedMarker.getLatLng();selectPoint(p.lat,p.lng);});}
+ if(pan)forecastMap.panTo([lat,lon]);
+ $('results').style.display='none';$('pdfExport').disabled=true;
+}
+function initMap(){
+ if(!window.L){$('map').textContent='Map library unavailable. Check your internet connection.';return;}
+ forecastMap=L.map('map',{scrollWheelZoom:false}).setView([20,0],2);
+ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles &copy; Esri and its data providers',maxZoom:18}).addTo(forecastMap);
+ forecastMap.on('click',e=>selectPoint(e.latlng.lat,e.latlng.lng));
+ setTimeout(()=>forecastMap.invalidateSize(),100);
+}
+// The existing Render backend expects an offshore reference and bearing.
+// Place that reference exactly 1 nautical mile south of the selected point;
+// the backend's first (1 NM north) forecast point is then the selected location.
+function oneNmSouth(lat,lon){const R=6371.0088,delta=1.852/R,phi=lat*Math.PI/180,lambda=lon*Math.PI/180;
+ const phi2=Math.asin(Math.sin(phi)*Math.cos(delta)-Math.cos(phi)*Math.sin(delta));
+ const lambda2=lambda+Math.atan2(0,-Math.sin(phi)*Math.sin(phi2)+Math.cos(phi)*Math.cos(phi2)*Math.cos(delta));
+ return {lat:phi2*180/Math.PI,lon:lambda2*180/Math.PI};}
+const waveFields='wave_height,wave_direction,wave_period,swell_wave_height';
+async function getWaves(lat,lon){
+ const url=`https://marine-api.open-meteo.com/v1/marine?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hourly=${waveFields}&forecast_days=6&timezone=GMT`;
+ const response=await fetch(url,{headers:{Accept:'application/json'}});
+ if(!response.ok)throw new Error('Marine data HTTP '+response.status);
+ const data=await response.json();
+ if(!data.hourly?.time)throw new Error('No marine forecast returned');
+ const lookup=new Map();
+ data.hourly.time.forEach((time,i)=>{const epoch=Date.parse(time+'Z')/1000;if(Number.isFinite(epoch))lookup.set(epoch,{height:data.hourly.wave_height?.[i],direction:data.hourly.wave_direction?.[i],period:data.hourly.wave_period?.[i],swell:data.hourly.swell_wave_height?.[i]});});
+ return lookup;
+}
+const windModels={openweather:'OpenWeather (model unspecified)',ecmwf_ifs:'ECMWF IFS',ncep_gfs_seamless:'GFS (NCEP)',icon_seamless:'ICON (DWD)'};
+$('windModel').addEventListener('change',()=>{$('modelSource').textContent=windModels[$('windModel').value];$('results').style.display='none';$('pdfExport').disabled=true;});
+async function getModelForecast(lat,lon,model){
+ const params=new URLSearchParams({latitude:String(lat),longitude:String(lon),models:model,
+  hourly:'wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m',
+  wind_speed_unit:'kn',temperature_unit:'celsius',timezone:'GMT',forecast_days:'6'});
+ let response;
+ try{response=await fetch('https://api.open-meteo.com/v1/forecast?'+params.toString());}
+ catch(e){throw new Error('Cannot contact Open-Meteo wind model: '+e.message);}
+ if(!response.ok)throw new Error('Open-Meteo '+windModels[model]+' returned HTTP '+response.status);
+ const data=await response.json();const h=data.hourly;
+ if(!h?.time?.length)throw new Error('No wind forecast available from '+windModels[model]);
+ const forecast=[];const now=Date.now()/1000;
+ for(let i=0;i<h.time.length;i++){
+  const dt=Date.parse(h.time[i]+'Z')/1000;
+  if(!Number.isFinite(dt)||dt<now-3600||dt>now+5*86400||new Date(dt*1000).getUTCHours()%3!==0)continue;
+  const value=(arr)=>arr?.[i]===null||arr?.[i]===undefined?NaN:Number(arr[i]);
+  const speed=value(h.wind_speed_10m),dir=value(h.wind_direction_10m),gust=value(h.wind_gusts_10m),temp=value(h.temperature_2m);
+  if(!Number.isFinite(speed)||!Number.isFinite(dir))continue;
+  forecast.push({dt,windKnots:speed,windDeg:dir,gustKnots:gust,tempC:temp});
+ }
+ if(!forecast.length)throw new Error('No usable '+windModels[model]+' forecast for this location. Try another model.');
+ return {forecast,timezoneOffset:0};
+}
+function waveAt(lookup,dt){if(!lookup)return null;const nearest=Math.round(dt/3600)*3600;return Math.abs(nearest-dt)<=5400?lookup.get(nearest)||null:null;}
+const num=(n,unit='',digits=1)=>Number.isFinite(n)?n.toFixed(digits)+unit:'—';
+const high=(value,limit)=>Number.isFinite(value)&&value>limit;
+ const alertClass=(value,limit)=>high(value,limit)?'alert-high':'';
+ // Meteorological wind direction is where wind COMES FROM. Arrow points where it BLOWS TO.
+ const windArrow=d=>Number.isFinite(d)?`<span class="wind-arrow" style="transform:rotate(${(d+180)%360}deg)" aria-hidden="true">↑</span><span class="wind-degrees">${Math.round(d)}°</span>`:'—';
+ const compass=d=>['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(d/22.5)%16];
+function fmtTime(t,offset){const d=new Date((t+offset)*1000);const day=new Intl.DateTimeFormat(undefined,{weekday:'short',timeZone:'UTC'}).format(d);return `${day} ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;}
+function showError(message){$('error').textContent=message||'';}
+async function json(path){let r;try{r=await fetch(API_BASE+path,{mode:'cors',headers:{Accept:'application/json'}});}catch(e){throw new Error('Cannot contact the forecast API. Check your internet connection. '+e.message)}let d;try{d=await r.json()}catch{throw new Error('Server returned an unexpected response (HTTP '+r.status+').')}if(!r.ok)throw new Error(d.error||'Request failed (HTTP '+r.status+').');return d;}
+$('clear').onclick=()=>{selectedPoint=null;if(selectedMarker){forecastMap.removeLayer(selectedMarker);selectedMarker=null;}$('lat').value='';$('lon').value='';$('selection').textContent='Click on the map to place your forecast marker.';$('results').style.display='none';$('pdfExport').disabled=true;showError('');};
+$('search').onclick=async()=>{showError('');$('search').disabled=true;try{
+ const place=$('place').value.trim();if(!place)throw new Error('Enter a town and country.');
+ // OpenWeather geocoding expects a comma between place and country.
+ // Allow natural input such as 'Sami Greece' or 'New York United States'.
+ function geocodeQuery(value){
+   if(value.includes(','))return value;
+   const words=value.split(/\s+/);
+   if(words.length<2)return value;
+   const countries=['united states of america','united arab emirates','united kingdom','united states','south africa','new zealand','saudi arabia','costa rica','sri lanka','north macedonia','south korea','north korea','czech republic','dominican republic','bosnia and herzegovina'];
+   const lower=value.toLowerCase();
+   for(const country of countries){if(lower.endsWith(' '+country))return value.slice(0,-country.length).trim()+', '+value.slice(-country.length);}
+   return words.slice(0,-1).join(' ')+', '+words.at(-1);
+ }
+ let matches=await json('/api/geocode?q='+encodeURIComponent(geocodeQuery(place)));
+ if((!Array.isArray(matches)||!matches.length)&&!place.includes(','))matches=await json('/api/geocode?q='+encodeURIComponent(place));
+ if(!Array.isArray(matches)||!matches.length)throw new Error('Location not found.');
+ let chosen=matches[0];if(matches.length>1){const selection=prompt('Choose location number:\n'+matches.map((m,i)=>`${i+1}. ${m.name}, ${m.state||''} ${m.country}`).join('\n'),'1');if(selection===null)return;const idx=Number(selection)-1;if(!Number.isInteger(idx)||!matches[idx])throw new Error('Invalid selection.');chosen=matches[idx];}
+ forecastMap.setView([chosen.lat,chosen.lon],11);selectPoint(chosen.lat,chosen.lon);
+ }catch(e){showError(e.message)}finally{$('search').disabled=false;}};
+for(const id of ['lat','lon'])$(id).addEventListener('change',()=>{const la=$('lat').value,lo=$('lon').value;if(la!==''&&lo!==''){const lat=Number(la),lon=Number(lo);if(Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180)selectPoint(lat,lon,true);}});
+$('run').onclick=async()=>{showError('');$('run').disabled=true;$('run').textContent='Loading forecast…';try{
+ let lat=Number($('lat').value),lon=Number($('lon').value);
+ if(!$('lat').value.trim()||!$('lon').value.trim()||!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)throw new Error('Click a point on the map or enter valid coordinates.');
+ selectPoint(lat,lon,true);
+ const model=$('windModel').value;
+ let p;
+ if(model==='openweather'){
+  const origin=oneNmSouth(lat,lon);
+  const data=await json(`/api/forecast?lat=${encodeURIComponent(origin.lat)}&lon=${encodeURIComponent(origin.lon)}&bearing=0`);
+  if(!Array.isArray(data.points)||!data.points.length)throw new Error('No forecast points returned by Render.');
+  p=data.points.find(point=>point.distanceNm===1)||data.points[0];
+ }else{
+  p=await getModelForecast(lat,lon,model);
+ }
+ if(!Array.isArray(p.forecast)||!p.forecast.length)throw new Error('No forecast available for selected point.');
+ const cards=$('cards'),rows=$('rows');cards.replaceChildren();rows.replaceChildren();roughOnly=false;updateRoughFilter();
+ let waves=null;try{waves=await getWaves(lat,lon);}catch(e){const note=document.createElement('p');note.className='notice';note.textContent='Wave service unavailable: '+e.message;cards.appendChild(note);}
+ const now=p.forecast[0],w=waveAt(waves,now.dt);const card=document.createElement('div');card.className='point';card.innerHTML=`<h2>Selected forecast point</h2><div class="coords">${lat.toFixed(5)}, ${lon.toFixed(5)}</div><div class="metric"><div><small>Direction</small><b>${windArrow(now.windDeg)}</b></div><div class="${alertClass(now.windKnots,15)}"><small>Wind</small><b>${num(now.windKnots,' kn')}</b></div><div class="${alertClass(now.gustKnots,15)}"><small>Gust</small><b>${num(now.gustKnots,' kn')}</b></div><div class="${alertClass(w?.height,1)}"><small>Waves</small><b>${num(w?.height,' m')}</b></div><div><small>Period</small><b>${num(w?.period,' s')}</b></div><div><small>Swell</small><b>${num(w?.swell,' m')}</b></div></div>`;cards.appendChild(card);
+ for(const h of p.forecast){const w=waveAt(waves,h.dt),tr=document.createElement('tr');tr.innerHTML=`<td>${fmtTime(h.dt,p.timezoneOffset)}</td><td>${windArrow(h.windDeg)}</td><td class="${alertClass(h.windKnots,15)}">${num(h.windKnots,' kn')}</td><td class="${alertClass(h.gustKnots,15)}">${num(h.gustKnots,' kn')}</td><td class="${alertClass(w?.height,1)}">${num(w?.height,' m')}</td><td>${num(w?.period,' s')}</td><td>${num(w?.swell,' m')}</td>`;rows.appendChild(tr);}
+ $('results').style.display='block';$('pdfExport').disabled=false;
+ }catch(e){showError(e.message)}finally{$('run').disabled=false;$('run').textContent='Get forecast for selected point';}};
+// Generate an actual PDF file; iOS Safari does not reliably support delayed window.print().
+let roughOnly=false;
+function updateRoughFilter(){
+ const rows=[...$('rows').querySelectorAll('tr')];
+ let visible=0;
+ for(const row of rows){
+  const show=!roughOnly||!!row.querySelector('td.alert-high');
+  row.style.display=show?'':'none';if(show)visible++;
+ }
+ $('roughOnly').textContent=roughOnly?'Show all conditions':'Show rough conditions only';
+ $('roughOnly').setAttribute('aria-pressed',String(roughOnly));
+ $('roughEmpty').style.display=roughOnly&&rows.length&&!visible?'block':'none';
+}
+$('roughOnly').addEventListener('click',()=>{roughOnly=!roughOnly;updateRoughFilter();});
+$('pdfExport').addEventListener('click', async ()=>{
+ if(!selectedPoint||$('results').style.display!=='block')return;
+ const button=$('pdfExport');
+ const loc=`${selectedPoint.lat.toFixed(5)}°, ${selectedPoint.lon.toFixed(5)}°`;
+ $('printMeta').textContent=`Forecast position: ${loc} | Wind model: ${windModels[$('windModel').value]} | Waves: Open-Meteo Marine | Generated: ${new Date().toLocaleString()}`;
+ // Open a blank tab synchronously from the tap: iOS blocks tabs opened after await.
+ const isiOS=/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ let pdfTab=null;
+ if(isiOS)pdfTab=window.open('','_blank');
+ if(pdfTab){pdfTab.document.write('<!doctype html><title>Preparing marine forecast PDF</title><p style="font:18px system-ui;padding:24px">Preparing your PDF… Please wait.</p>');pdfTab.document.close();}
+ button.disabled=true;button.textContent='Preparing PDF…';
+ try{
+  if(!window.jspdf?.jsPDF)throw new Error('PDF library could not load. Check internet connection.');
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const pageW=doc.internal.pageSize.getWidth();
+  doc.setFont('helvetica','bold');doc.setFontSize(17);doc.text('Marine Wind & Waves Forecast - v16',12,14);
+  doc.setFont('helvetica','normal');doc.setFontSize(10);
+  doc.text('Position: '+loc+'  |  Wind model: '+windModels[$('windModel').value],12,21);
+  doc.text('Waves: Open-Meteo Marine  |  Generated: '+new Date().toLocaleString(),12,27);
+  let tableStart=35;
+  // Capture the visible map when cross-origin map tiles permit it.
+  if(window.html2canvas&&forecastMap){
+   try{
+    forecastMap.invalidateSize();
+    const canvas=await window.html2canvas($('map'),{useCORS:true,allowTaint:false,logging:false,backgroundColor:'#ffffff',scale:1});
+    if(canvas.width&&canvas.height){
+     const imageH=54;
+     doc.addImage(canvas.toDataURL('image/jpeg',0.8),'JPEG',12,32,Math.min(pageW-24,imageH*canvas.width/canvas.height),imageH);
+     tableStart=91;
+    }
+   }catch(e){console.warn('Map capture unavailable:',e);}
+  }
+  const headings=['Time','Wind from','Speed (kn)','Gust (kn)','Waves (m)','Period (s)','Swell (m)'];
+  const pdfRows=[...$('rows').querySelectorAll('tr')].filter(tr=>tr.style.display!=='none');
+  const data=pdfRows.map(tr=>{
+   const cells=[...tr.querySelectorAll('td')];
+   return cells.map((td,i)=>i===1?td.querySelector('.wind-degrees')?.textContent||'--':td.textContent.trim());
+  });
+  if(!data.length)throw new Error('No forecast rows match the current filter.');
+  const red=[185,28,28];
+  doc.autoTable({
+   head:[headings],body:data,startY:tableStart,theme:'grid',
+   styles:{font:'helvetica',fontSize:8,cellPadding:2.2,overflow:'linebreak'},
+   headStyles:{fillColor:[16,40,59],textColor:255},
+   margin:{left:12,right:12,bottom:14},
+   didParseCell:function(hook){
+    if(hook.section!=='body')return;
+    const cell=pdfRows[hook.row.index]?.querySelectorAll('td')[hook.column.index];
+    if(cell?.classList.contains('alert-high')){hook.cell.styles.fillColor=red;hook.cell.styles.textColor=[255,255,255];hook.cell.styles.fontStyle='bold';}
+   }
+  });
+  const total=doc.internal.getNumberOfPages();
+  for(let i=1;i<=total;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(90);doc.text('Forecast estimates only - not for navigation.  Page '+i+' / '+total,12,doc.internal.pageSize.getHeight()-6);}
+  const filename='marine-forecast-v16-'+new Date().toISOString().slice(0,10)+'.pdf';
+  if(isiOS){
+   const blob=doc.output('blob');
+   const url=URL.createObjectURL(blob);
+   if(pdfTab){pdfTab.location.replace(url);}
+   else {const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener';document.body.append(link);link.click();link.remove();}
+   $('printHelp').textContent='PDF opened in Safari. Tap Share, then Save to Files. If a blank tab was blocked, allow pop-ups for this site.';
+   // Keep blob URL alive long enough for Safari to load the PDF.
+   setTimeout(()=>URL.revokeObjectURL(url),120000);
+  }else{doc.save(filename);}
+ }catch(e){
+  if(pdfTab)pdfTab.close();
+  showError('PDF export failed: '+e.message+'. You can try Safari Share > Print instead.');
+ }finally{button.disabled=false;button.textContent='Save map & forecast as PDF';}
+});
+window.addEventListener('afterprint',()=>{if(forecastMap)setTimeout(()=>forecastMap.invalidateSize(),200);});
+initMap();
+</script></body></html>
