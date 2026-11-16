@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#081827"><meta name="description" content="Coastal wind forecast at 1, 6 and 12 nautical miles offshore.">
+<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Marine Wind Forecast</title>
+<style>
+:root{font-family:Inter,system-ui,Arial,sans-serif;color:#eaf2fb;background:#081827}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(150deg,#0b263c,#081827 55%);min-height:100vh}
+main{max-width:1180px;margin:auto;padding:28px 18px 60px}
+header{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.logo{width:44px;height:44px;border-radius:13px;background:#0d9ac4;display:grid;place-items:center;font-size:24px}
+h1{font-size:clamp(25px,4vw,36px);margin:0}header p{margin:4px 0 0;color:#9eb4c8}
+.panel{background:#10283b;border:1px solid #23445c;border-radius:18px;padding:20px;margin:16px 0;box-shadow:0 12px 35px #0002}
+.formgrid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
+label{display:block;color:#a9bfd1;font-size:13px;margin-bottom:7px}
+input,button{font:inherit;border-radius:10px;padding:12px;border:1px solid #36566d;background:#091d2c;color:#f3f8fc;width:100%}
+button{background:#079ac2;border:0;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:wait}
+.secondary{background:#1a3b51}.actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.actions button{width:auto;min-width:180px}
+.hint,.muted{color:#9eb4c8;font-size:13px;line-height:1.5}
+.notice{color:#ffd58a;background:#49371955;border:1px solid #80602c;padding:12px;border-radius:10px;font-size:13px;line-height:1.5}
+#error{color:#ffb1a9;margin-top:12px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.point{background:#0b2030;border:1px solid #294b62;border-radius:14px;padding:15px;min-width:0}
+.point h2{font-size:18px;margin:0 0 5px}.coords{font-size:11px;color:#8faabd;margin-bottom:12px;overflow-wrap:anywhere}
+.metric{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.metric div{background:#15364c;padding:9px;border-radius:9px}
+.metric small{display:block;color:#9eb4c8;font-size:11px}.metric b{font-size:18px}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:620px}
+th,td{text-align:left;padding:11px 9px;border-bottom:1px solid #29475b;white-space:nowrap}
+th{color:#9eb4c8;font-weight:600;position:sticky;top:0;background:#10283b}
+.tablewrap{overflow:auto;max-height:560px}
+#results{display:none}.compass{display:inline-block;margin-right:5px;color:#61d5ed}
+@media(max-width:760px){.formgrid{grid-template-columns:1fr}.tabs{grid-template-columns:1fr}.metric b{font-size:16px}main{padding:18px 12px}}
+</style>
+</head>
+<body><main>
+<header><div class="logo">〰</div><div style="flex:1"><h1>Marine Wind Forecast</h1><p>5-day coastal forecast · OpenWeather</p></div><button id="installApp" class="secondary" style="display:none;width:auto;white-space:nowrap;padding:10px 12px">Install app</button></header>
+<section class="panel">
+<h2 style="margin-top:0">Choose coastal reference location</h2>
+<div class="formgrid">
+<div><label for="place">Town and country</label><input id="place" placeholder="e.g. Netanya, Israel"></div>
+<div><label for="lat">Or latitude</label><input id="lat" type="number" step="any" placeholder="32.321"></div>
+<div><label for="lon">Or longitude</label><input id="lon" type="number" step="any" placeholder="34.853"></div>
+</div>
+<div style="max-width:360px;margin-top:14px">
+<label for="bearing">Offshore direction / bearing (degrees clockwise from north)</label>
+<input id="bearing" type="number" min="0" max="359" value="270">
+<div class="hint">Example: 90 = east, 180 = south, 270 = west. For a town search, first confirm that the geocoded point is near the coast. For best results, enter coordinates of a point on the shoreline.</div>
+</div>
+<div class="actions"><button id="run">Get forecast at 1, 6 and 12 NM</button><button class="secondary" id="clear">Clear</button></div>
+<div id="error" role="alert"></div>
+</section>
+<div class="notice">Marine-use note: the three forecast points are calculated from the selected reference coordinates along the bearing you enter. OpenWeather provides atmospheric forecast data, not a dedicated marine model. This tool does not automatically identify the coastline, verify that each point is over water, or correct for coastal effects. Check the plotted positions and use an authoritative marine forecast before sailing.</div>
+<section id="results">
+<div class="panel"><h2 style="margin-top:0">Offshore comparison</h2><div class="tabs" id="cards"></div></div>
+<div class="panel"><h2 style="margin-top:0">3-hourly forecast · next 5 days</h2><div class="tablewrap"><table><thead><tr><th>Time</th><th>Offshore</th><th>Wind</th><th>Speed</th><th>Gust</th><th>Air temp.</th></tr></thead><tbody id="rows"></tbody></table></div><p class="hint">Wind speeds are converted from m/s to knots. Forecast points are provided every 3 hours for up to 5 days by OpenWeather.</p></div>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let installPrompt=null;
+window.addEventListener("beforeinstallprompt", event=>{event.preventDefault();installPrompt=event;$("installApp").style.display="block";});
+$("installApp").addEventListener("click",async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$("installApp").style.display="none";});
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));}
+const compass=d=>["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"][Math.round(d/22.5)%16];
+const fmtTime=(t,offsetSeconds)=>{
+ const d=new Date((t+offsetSeconds)*1000);
+ const day=new Intl.DateTimeFormat(undefined,{weekday:"short",timeZone:"UTC"}).format(d);
+ return `${day} ${String(d.getUTCHours()).padStart(2,"0")}:${String(d.getUTCMinutes()).padStart(2,"0")}`;
+};
+function showError(s){$("error").textContent=s||""}
+async function json(url){const r=await fetch(url);const d=await r.json();if(!r.ok)throw new Error(d.error||"Request failed");return d}
+$("clear").onclick=()=>{["place","lat","lon"].forEach(x=>$(x).value="");$("results").style.display="none";showError("")};
+$("run").onclick=async()=>{
+ showError("");$("run").disabled=true;$("run").textContent="Loading forecast…";
+ try{
+  let lat,lon;
+  const la=$("lat").value.trim(),lo=$("lon").value.trim(),place=$("place").value.trim();
+  if(la||lo){if(!la||!lo)throw new Error("Enter both latitude and longitude.");lat=Number(la);lon=Number(lo);}
+  else{
+   if(!place)throw new Error("Enter a town and country, or both coordinates.");
+   const matches=await json("/api/geocode?q="+encodeURIComponent(place));
+   if(!matches.length)throw new Error("Location not found. Try adding the country.");
+   if(matches.length>1){
+    const choice=prompt("Choose a location number:\\n"+matches.map((m,i)=>`${i+1}. ${m.name}, ${m.state||""} ${m.country}`).join("\\n"),"1");
+    const idx=Number(choice)-1;if(!Number.isInteger(idx)||!matches[idx])throw new Error("Location selection cancelled.");
+    lat=matches[idx].lat;lon=matches[idx].lon;
+   }else{lat=matches[0].lat;lon=matches[0].lon;}
+   $("lat").value=lat.toFixed(5);$("lon").value=lon.toFixed(5);
+  }
+  const b=Number($("bearing").value);
+  const data=await json(`/api/forecast?lat=${lat}&lon=${lon}&bearing=${b}`);
+  const cards=$("cards"),rows=$("rows");cards.innerHTML="";rows.innerHTML="";
+  const tz=data.points[0].timezone;
+  data.points.forEach(p=>{
+   const now=p.forecast[0],card=document.createElement("div");card.className="point";
+   card.innerHTML=`<h2>${p.distanceNm} nautical mile${p.distanceNm===1?"":"s"} offshore</h2><div class="coords">${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}</div>
+   <div class="metric"><div><small>Direction</small><b>${compass(now.windDeg)}</b></div><div><small>Wind</small><b>${now.windKnots.toFixed(1)} kn</b></div><div><small>Gust</small><b>${now.gustKnots==null?"—":now.gustKnots.toFixed(1)+" kn"}</b></div><div><small>Air</small><b>${now.tempC.toFixed(1)}°C</b></div></div>`;
+   cards.appendChild(card);
+   p.forecast.forEach((h,i)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${fmtTime(h.dt,p.timezoneOffset)}</td><td>${p.distanceNm} NM</td><td>${compass(h.windDeg)} (${Math.round(h.windDeg)}°)</td><td>${h.windKnots.toFixed(1)} kn</td><td>${h.gustKnots==null?"—":h.gustKnots.toFixed(1)+" kn"}</td><td>${h.tempC.toFixed(1)}°C</td>`;
+    rows.appendChild(tr);
+   });
+  });
+  $("results").style.display="block";
+ }catch(e){showError(e.message)}
+ finally{$("run").disabled=false;$("run").textContent="Get forecast at 1, 6 and 12 NM";}
+};
+</script>
+</body></html>
